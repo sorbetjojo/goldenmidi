@@ -362,7 +362,7 @@ def main():
         if m=='1': listener()
         elif m=='2':
             root=tk.Tk(); root.withdraw()
-            folder=os.path.join(os.getcwd(),'.midi')
+            folder=os.path.join(os.getcwd(),'midi')
             initial=folder if os.path.exists(folder) else os.getcwd()
             fp=filedialog.askopenfilename(title="Select MIDI file", initialdir=initial, filetypes=[("MIDI files","*.mid *.midi")])
             root.destroy()
