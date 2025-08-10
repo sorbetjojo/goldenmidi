@@ -4,15 +4,14 @@
     "velocity_threshold": 0.0,
     "cooldown": 0.0167,
     "transpose": 0,
-    "string_base": {
-        "1": 40,
-        "2": 45,
-        "3": 50,
-        "4": 55,
-        "5": 59,
-        "6": 64
-    },
-    "max_fret": 15,
+    "x_base": 345,
+    "x_offset": 33,
+    "y_base": 100,
+    "y_offset": 61,
+    "x_mouse_base": 1455,
+    "x_mouse_offset": 50,
+    "strum_y_min_mouse": 271,
+    "strum_y_max_mouse": 538,
     "string_keys": {
         "1": "q",
         "2": "w",
@@ -21,24 +20,13 @@
         "5": "t",
         "6": "y"
     },
-    "string_x": {
-        "1": 340,
-        "2": 375,
-        "3": 410,
-        "4": 445,
-        "5": 480,
-        "6": 515
-    },
-    "strum_x_mouse": {
-        "1": 1455,
-        "2": 1505,
-        "3": 1555,
-        "4": 1605,
-        "5": 1655,
-        "6": 1705
-    },
-    "strum_y_min_mouse": 271,
-    "strum_y_max_mouse": 538,
-    "y_base": 100,
-    "y_offset": 60
+    "max_fret": 15,
+    "string_base": {
+        "1": 40,
+        "2": 45,
+        "3": 50,
+        "4": 55,
+        "5": 59,
+        "6": 64
+    }
 }

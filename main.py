@@ -50,15 +50,31 @@ DEFAULT_CFG = {
     "velocity_threshold": 0.0,
     "cooldown": 0.0167,
     "transpose": 0,
-    "string_base": {"1": 40, "2": 45, "3": 50, "4": 55, "5": 59, "6": 64},
-    "max_fret": 15,
-    "string_keys": {"1": "q", "2": "w", "3": "e", "4": "r", "5": "t", "6": "y"},
-    "string_x": {"1": 340, "2": 375, "3": 410, "4": 445, "5": 480, "6": 515},
-    "strum_x_mouse": {"1": 1455, "2": 1505, "3": 1555, "4": 1605, "5": 1655, "6": 1705},
+    "x_base": 345,
+    "x_offset": 33,
+    "y_base": 100,
+    "y_offset": 61,
+    "x_mouse_base": 1455,
+    "x_mouse_offset": 50,
     "strum_y_min_mouse": 271,
     "strum_y_max_mouse": 538,
-    "y_base": 100,
-    "y_offset": 60
+    "string_keys": {
+        "1": "q",
+        "2": "w",
+        "3": "e",
+        "4": "r",
+        "5": "t",
+        "6": "y"
+    },
+    "max_fret": 15,
+    "string_base": {
+        "1": 40,
+        "2": 45,
+        "3": 50,
+        "4": 55,
+        "5": 59,
+        "6": 64
+    }
 }
 
 # Load or initialize config
@@ -88,28 +104,30 @@ def save_cfg():
 
 def reload_config():
     global USE_VELOCITY, VELOCITY_MULTIPLIER, VELOCITY_THRESHOLD, COOLDOWN, TRANSPOSE
-    global STRING_BASE, MAX_FRET, STRING_KEYS, STRING_X, STRUM_X_M, STRUM_Y_MIN_M
-    global STRUM_Y_MAX_M, Y_BASE, Y_OFFSET, LOWEST, HIGHEST
+    global X_BASE, X_OFFSET, Y_BASE, Y_OFFSET, X_MOUSE_BASE, X_MOUSE_OFFSET
+    global STRUM_Y_MIN_M, STRUM_Y_MAX_M, STRING_KEYS, MAX_FRET, STRING_BASE
+    global LOWEST, HIGHEST
 
     USE_VELOCITY = cfg['use_velocity']
     VELOCITY_MULTIPLIER = cfg['velocity_multiplier']
     VELOCITY_THRESHOLD = cfg['velocity_threshold']
     COOLDOWN = cfg['cooldown']
     TRANSPOSE = cfg.get('transpose', 0)
-    STRING_BASE = {int(k): v for k, v in cfg['string_base'].items()}
-    MAX_FRET = cfg['max_fret']
-    STRING_KEYS = {int(k): v for k, v in cfg['string_keys'].items()}
-    STRING_X = {int(k): v for k, v in cfg['string_x'].items()}
-    STRUM_X_M = {int(k): v for k, v in cfg['strum_x_mouse'].items()}
-    STRUM_Y_MIN_M = cfg['strum_y_min_mouse']
-    STRUM_Y_MAX_M = cfg['strum_y_max_mouse']
+    X_BASE = cfg['x_base']
+    X_OFFSET = cfg['x_offset']
     Y_BASE = cfg['y_base']
     Y_OFFSET = cfg['y_offset']
+    X_MOUSE_BASE = cfg['x_mouse_base']
+    X_MOUSE_OFFSET = cfg['x_mouse_offset']
+    STRUM_Y_MIN_M = cfg['strum_y_min_mouse']
+    STRUM_Y_MAX_M = cfg['strum_y_max_mouse']
+    STRING_KEYS = {int(k): v for k, v in cfg['string_keys'].items()}
+    MAX_FRET = cfg['max_fret']
+    STRING_BASE = {int(k): v for k, v in cfg['string_base'].items()}
     LOWEST = min(STRING_BASE.values())
     HIGHEST = max(v + MAX_FRET for v in STRING_BASE.values())
 
 def check_webfishing_open():
-    """Check if WEBFISHING is open before starting MIDI operations"""
     try:
         focus_game()
         return True
@@ -118,6 +136,28 @@ def check_webfishing_open():
         print("Press any key to continue...")
         get_key()
         return False
+
+def setup_webfishing_guitar():
+    try:
+        focus_game()
+        
+        mouse_ctrl.position = (0, 0)
+        mouse_ctrl.click(mouse.Button.left, 1)
+
+        time.sleep(0.5)
+        
+        xPeg = X_BASE + 6 * X_OFFSET
+        mouse_ctrl.position = (xPeg, Y_BASE)
+        mouse_ctrl.click(mouse.Button.left, 1)
+        
+        for string_num in sorted(STRING_BASE.keys()):
+            x = X_BASE + (string_num - 1) * X_OFFSET
+            mouse_ctrl.position = (x, Y_BASE)
+            mouse_ctrl.click(mouse.Button.left, 1)
+            time.sleep(COOLDOWN)
+        
+    except WebfishingNotFoundError:
+        raise
 
 # Quick Settings menu
 def settings_menu():
@@ -196,8 +236,8 @@ def click_fret(s, fret):
     try:
         focus_game()
     except WebfishingNotFoundError:
-        return  # Silently fail during playback to avoid spam
-    x = STRING_X[s]; y = Y_BASE + fret*Y_OFFSET
+        return
+    x = X_BASE + (s - 1) * X_OFFSET; y = Y_BASE + fret * Y_OFFSET
     mouse_ctrl.position = (x, y)
     mouse_ctrl.click(mouse.Button.left, 1)
 
@@ -205,9 +245,9 @@ def strum_mouse(s, velocity):
     try:
         focus_game()
     except WebfishingNotFoundError:
-        return  # Silently fail during playback to avoid spam
+        return
     y = STRUM_Y_MIN_M - (velocity/127)*(STRUM_Y_MIN_M-STRUM_Y_MAX_M)*VELOCITY_MULTIPLIER
-    x = STRUM_X_M[s]; clampY = max(min(y,STRUM_Y_MAX_M),STRUM_Y_MIN_M)
+    x = X_MOUSE_BASE + (s - 1) * X_MOUSE_OFFSET; clampY = max(min(y,STRUM_Y_MAX_M),STRUM_Y_MIN_M)
     mouse_ctrl.position = (x, clampY)
     mouse_ctrl.press(mouse.Button.left)
     time.sleep(COOLDOWN)
@@ -257,10 +297,6 @@ def handle(msg):
         with lock: mapping.pop(msg.note,None)
 
 def listener(port_name=None):
-    # Check if WEBFISHING is open before starting
-    if not check_webfishing_open():
-        return False
-        
     clear_console()
     available = []
     for name in mido.get_input_names():
@@ -274,6 +310,7 @@ def listener(port_name=None):
         print("[0] Back")
         get_key()
         return False
+        
     if len(available)==1:
         port_name=available[0]
     else:
@@ -288,6 +325,9 @@ def listener(port_name=None):
             return False
     try:
         port=mido.open_input(port_name)
+        if not check_webfishing_open():
+            return False
+        setup_webfishing_guitar()
     except Exception as e:
         print("Failed to open port: ", e)
         print("[0] Back")
@@ -315,6 +355,13 @@ def listener(port_name=None):
 def play_midi_file(fp):
     # Check if WEBFISHING is open before starting
     if not check_webfishing_open():
+        return
+    
+    # Run the setup sequence
+    try:
+        setup_webfishing_guitar()
+    except WebfishingNotFoundError:
+        print("\033[33mLost connection to WEBFISHING during setup\033[0m")
         return
         
     clear_console()
